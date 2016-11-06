@@ -1,28 +1,39 @@
-
 #include<stdio.h>
 #include<unistd.h>
 #include<stdlib.h>
 
 #define MAX_GRILLA 5
 
-//grilla con el estado actual
-int grilla [MAX_GRILLA][MAX_GRILLA];
 
-//nuevo estado de la grilla
-int nueva_grilla [MAX_GRILLA][MAX_GRILLA];
 
-int inicializar_arreglo(int grilla[MAX_GRILLA][MAX_GRILLA]){
+int** crear_grilla(int n){
     int i,j;
-    srand(getpid());
+    int **grilla;
+    //pido memoria para filas
+    grilla = malloc(n * sizeof(int*));
+
+    //memoria para cada columna
+    for(j = 0; j<n;j++){
+        grilla[j] = malloc(n * sizeof(int));
+    }
+
+    //chequeo si anduvo
+    if(grilla[n-1] == NULL){
+        fprintf(stderr, "malloc failed\n");
+        exit(-1);
+    }    
     
-    for(i = 0;i<MAX_GRILLA;i++){
-        for(j = 0; j<MAX_GRILLA;j++){
-            grilla[i][j] = 0;
+    return (int **)grilla; 
+}
+void zeroit(int **array, int nrows, int ncolumns)
+    {
+    int i, j;
+    for(i = 0; i < nrows; i++)
+        {
+        for(j = 0; j < ncolumns; j++)
+            array[i][j] = 0;
         }
     }
-    
-    return 0; 
-}
 
 int mostrar_arreglo(int grilla[MAX_GRILLA][MAX_GRILLA]){
     int i,j;
@@ -94,16 +105,20 @@ int nuevo_estado(int grilla[MAX_GRILLA][MAX_GRILLA], int i, int j, int viejo_val
     
 }
 
-int main(){   
-    inicializar_arreglo(grilla);
+void cambio(int *n){
+    (*n) = (*n) + 1;
+}
 
-    grilla[4][1] = 1;
-    grilla[4][2] = 1;
-    grilla[4][3] = 1;
+int main(){
+    int n = 10;
     int i,j;
+    //grilla con el estado actual
+    int **grilla = crear_grilla(n);
 
-    printf("%d, %d\n", nuevo_estado(grilla,2,0,grilla[2][0]),cantidad_vecinos(grilla,2,0));
+    //nuevo estado de la grilla
+    int **nueva_grilla = crear_grilla(n);
 
+    
     mostrar_arreglo(grilla);
     while(1){
         for(i = 0; i < MAX_GRILLA; i++) {
@@ -124,5 +139,6 @@ int main(){
         mostrar_arreglo(grilla);
         usleep(500000);
     }
+    
     return 0;
 }

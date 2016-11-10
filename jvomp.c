@@ -27,7 +27,6 @@ int inicializar_grilla(int **grilla, int n){
     int i,j;
 
     srand(getpid());
-
     for(i = 0;i<n;i++){
         for(j = 0; j<n;j++){
             grilla[i][j] = rand() % 2;
@@ -117,16 +116,13 @@ int nuevo_estado(int **grilla, int n, int i, int j, int viejo_valor){
     
 }
 
-int main(){
+int main( int argc, char *argv[]){
     int n = 100;
-    int pasos = 10000;
+    int pasos = 100000;
 
-    int i,j;
-    printf("grilla\n");
     //grilla con el estado actual
     int **grilla = crear_grilla(n);
 
-    printf("nueva grilla\n");
     //nuevo estado de la grilla
     int **nueva_grilla = crear_grilla(n);
 
@@ -134,20 +130,22 @@ int main(){
 
     inicializar_grilla(grilla, n);
 
+    printf("Version Paralela, Jugando...\n");
+
     while(pasos){
         
-        #pragma omp parallel num_threads(2)
+        #pragma omp parallel
         {
-            #pragma omp for
-            for(i = 0; i < n; i++) {
-                for (j = 0; j < n ; j++) {
+            #pragma omp for 
+            for(int i = 0; i < n; i++) {
+                for (int j = 0; j < n ; j++) {
                     nueva_grilla[i][j] = nuevo_estado(grilla,n,i,j, grilla[i][j]);
                 }
             }
 
             #pragma omp for
-            for(i = 0; i < n; i++) {
-                for (j = 0; j < n ; j++) {
+            for(int i = 0; i < n; i++) {
+                for (int j = 0; j < n ; j++) {
                     grilla[i][j] = nueva_grilla[i][j];
                 }
             }  

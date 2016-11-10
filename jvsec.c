@@ -125,7 +125,7 @@ int nuevo_estado(int **grilla, int n, int i, int j, int viejo_valor){
 
 int main(){
     int n = 100;
-    int pasos = 10000;
+    int pasos = 100000;
 
     int i,j;
     printf("grilla\n");
@@ -138,6 +138,8 @@ int main(){
 
     /*Glider*/
     
+    printf("Version Secuencial. Jugando...\n");
+
 
     inicializar_grilla(grilla, n);
     while(pasos){

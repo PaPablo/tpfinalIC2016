@@ -1,0 +1,7 @@
+Implementacion MPI Juego de la vida
+
+- Strips: cada rank se ocupa de tomar una tira de la matriz a calcular, los vecinos en la misma fila son accesibles normalmente y los verticales a través de mensajes
+
+- Bloques: otro mambo, para pedir por mensaje los a los vecinos que justo estén en otro bloque.
+
+

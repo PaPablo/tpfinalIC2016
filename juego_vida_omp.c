@@ -1,13 +1,7 @@
 #include<stdio.h>
 #include<unistd.h>
 #include<stdlib.h>
-
 #include<omp.h>
-
-
-#define MAX_GRILLA 5
-#define clear() printf("\033[H\033[J")
-
 
 int** crear_grilla(int n){
     int i,j;
@@ -137,22 +131,28 @@ int main(){
     int **nueva_grilla = crear_grilla(n);
 
     /*Glider*/
-    
 
     inicializar_grilla(grilla, n);
+
     while(pasos){
-
-        for(i = 0; i < n; i++) {
-            for (j = 0; j < n ; j++) {
-                nueva_grilla[i][j] = nuevo_estado(grilla,n,i,j, grilla[i][j]);
+        
+        #pragma omp parallel num_threads(2)
+        {
+            #pragma omp for
+            for(i = 0; i < n; i++) {
+                for (j = 0; j < n ; j++) {
+                    nueva_grilla[i][j] = nuevo_estado(grilla,n,i,j, grilla[i][j]);
+                }
             }
-        }
 
-        for(i = 0; i < n; i++) {
-            for (j = 0; j < n ; j++) {
-                grilla[i][j] = nueva_grilla[i][j];
-            }
+            #pragma omp for
+            for(i = 0; i < n; i++) {
+                for (j = 0; j < n ; j++) {
+                    grilla[i][j] = nueva_grilla[i][j];
+                }
+            }  
         }
+        
 
         pasos--;
     }

@@ -23,6 +23,23 @@ int** crear_grilla(int n){
     return grilla; 
 }
 
+int* crear_strip(int n){
+    int i;
+    int *strip;
+
+    //pido memoria para celda
+    strip = malloc(n * sizeof(int*));
+
+    //chequeo si anduvo
+    if(strip[n-1] == NULL){
+        fprintf(stderr, "malloc failed\n");
+        exit(-1);
+    }    
+    
+    return strip; 
+}
+
+
 int inicializar_grilla(int **grilla, int n){
     int i,j;
 
@@ -60,46 +77,69 @@ int modulo(int valor, int n){
     }
 }
 
-int cantidad_vecinos(int **grilla, int n, int i, int j){
-    int ni,si;
-    int ej,oj;
+int cantidad_vecinos(int *strip, int n, int i, int j){
 
-    //estos quedan como estaban 
-    oj = modulo((j-1), n);
-    ej = modulo((j+1), n);
+    printf("Vecinos %d %d %d\n",n,i,j);
+    int vecino_norte, 
+        vecino_noroeste,
+        vecino_noreste,
+        vecino_sur,
+        vecino_suroeste,
+        vecino_sureste,
+        envio;
+    printf("oj\n");
+    int oj = modulo(j-1,n);
+    printf("ej\n");
+    int ej = modulo(j+1,n);
+    /* Aca es donde comeinza el intercambio
+     * Como estoy trabajando en strips, y se que hay dos strips,
+     * de los cuales tres celdas necesitan datos de este strip, 
+     * los mando y quedan para usarse cuando se lo requiera
+     */
+    
+    envio = strip[j];
+    printf("About to send\n");
+    for(int requeridos = 0; requeridos < 3; requeridos++){
+
+        /* Pongo como tag la columna asi al requerir
+         * un valor, se lo pide a través del tag
+         */
+
+        //le mando mi valor al vecino de arriba
+        MPI_Send(&envio, 1, MPI_INT, modulo(i-1,n), j, MPI_COMM_WORLD);
+
+        //le mando mi valor al vecino de abajo
+        MPI_Send(&envio, 1, MPI_INT, modulo(i+1,n), j, MPI_COMM_WORLD);
+    }   
+    printf("sent\n");
 
 
-   	//arreglo para mandar entorno
-   	int entorno[3];
+   	//recibo vecino noroeste
+   	MPI_Recv(&vecino_noroeste, 1, MPI_INT, modulo(i-1,n), modulo(j-1,n), MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-   	//arreglos para entornos de arriba y de abajo
-   	int superior[3];
-   	int inferior[3];
+    //recibo vecino norte
+    MPI_Recv(&vecino_norte, 1, MPI_INT, modulo(i-1,n), j, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-   	entorno[0] = grilla[i][oj];
-   	entorno[1] = grilla[i][j];
-   	entorno[2] = grilla[i][ej];
+    //recibo vecino noreste
+    MPI_Recv(&vecino_noreste, 1, MPI_INT, modulo(i-1,n), modulo(j+1,n), MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    //le mando mi entorno al vecino de arriba
-   	MPI_Send(&entorno, 3, MPI_INT, modulo(i-1,n), 0, MPI_COMM_WORLD);
+    //recibo vecino suroeste
+    MPI_Recv(&vecino_suroeste, 1, MPI_INT, modulo(i+1,n), modulo(j-1,n), MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-   	//le mando mi entorno al vecino de abajo
-   	MPI_Send(&entorno, 3, MPI_INT, modulo(i+1,n), 0, MPI_COMM_WORLD);
+    //recibo vecino sur
+    MPI_Recv(&vecino_sur, 1, MPI_INT, modulo(i+1,n), j, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-   	//recibo del vecino de arriba;
-   	MPI_Recv(&superior, 3, MPI_INT, modulo(i-1,n), 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-
-   	//recibo del vecino de abajo;
-   	MPI_Recv(&inferior, 3, MPI_INT, modulo(i+1,n), 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    //recibo vecino sureste
+    MPI_Recv(&vecino_sureste, 1, MPI_INT, modulo(i+1,n), modulo(j+1,n), MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
     //sumamos
     int cant = 
-    superior[0]  	+ //vecino noroeste
-    superior[1]  	+ //vecino norte
-	superior[2]  	+ //vecino noreste
-    inferior[0]  	+ //vecino suroeste
-    inferior[1]  	+ //vecino sur
-	inferior[2]		+ //vecino sureste
+    vecino_noroeste + //vecino noroeste
+    vecino_norte    + //vecino norte
+	vecino_noreste  + //vecino noreste
+    vecino_suroeste + //vecino suroeste
+    vecino_sur  	+ //vecino sur
+	vecino_sureste	+ //vecino sureste
     grilla[i][oj]  	+ //vecino oeste
     grilla[i][ej];	  //vecino este
     
@@ -108,10 +148,10 @@ int cantidad_vecinos(int **grilla, int n, int i, int j){
 }
 
 
-int nuevo_estado(int **grilla, int n, int i, int j, int viejo_valor){
-    
+int nuevo_estado(int *strip, int n, int j, int viejo_valor){
+    printf("Nuevo estado\n");
 
-    int vecinos = cantidad_vecinos(grilla,n,i,j);
+    int vecinos = cantidad_vecinos(strip,n,i,j);
 
     // Para morir de inanicion
     // En este caso, menos de dos vecinos vivos
@@ -120,7 +160,7 @@ int nuevo_estado(int **grilla, int n, int i, int j, int viejo_valor){
     } // Para pasar a la siguiente generacion
       // En este caso, dos o tres vecinos vivos
     else if ((vecinos==2)){ // no pongo el de 3 porque no le da vida al que debe
-        return viejo_valor*1;
+        return viejo_valor;
     }
     // Para que una celda comience a vivir    
     // En este caso 3 vecinos vivos.
@@ -139,27 +179,16 @@ int nuevo_estado(int **grilla, int n, int i, int j, int viejo_valor){
     
 }
 
-void prueba(int rank){
-	int valor = rank;
-
-	MPI_Send(&valor, 1, MPI_INT, modulo(rank+1,10), 0, MPI_COMM_WORLD);
-	MPI_Recv(&valor, 1, MPI_INT, modulo(rank-1,10), 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-
-	printf("soy %d, recibi %d\n", rank, valor);
-
-}
 int main(){
-
-	int n = 10;
-
-	int pasos = 10;
-
-	int **grilla = crear_grilla(n); 
-	int **nueva_grilla = crear_grilla(n);
-    
-	inicializar_grilla(grilla, n);
+   
     MPI_Init(NULL, NULL);    
 
+    int pasos = 10;
+    int n = 10;
+    int **grilla; 
+    int *strip = crear_strip(n);
+    int *nuevo_strip = crear_strip(n);
+    int **nueva_grilla; 
 	int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     if(size < 1){
@@ -170,14 +199,25 @@ int main(){
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    	
- 	
 
- 	grilla[3][3] = 1;
- 	grilla[3][4] = 1;
- 	grilla[3][5] = 1;
- 	grilla[4][5] = 1;
- 	grilla[5][4] = 1;
- 	
+    if(rank == 0){
+        printf("Creamos primera grilla\n");
+        grilla = crear_grilla(n); 
+        nueva_grilla = crear_grilla(n);
+        inicializar_grilla(grilla, n);  
+
+        // SCATTERRRR
+        MPI
+
+        printf("Asigno glider\n");
+        /*Glider*/
+        grilla[3][3] = 1;
+        grilla[3][4] = 1;
+        grilla[3][5] = 1;
+        grilla[4][5] = 1;
+        grilla[5][4] = 1;
+    }
+
 
     while(pasos){
 
@@ -190,8 +230,12 @@ int main(){
                 grilla[rank][j] = nueva_grilla[rank][j];
             }
 
-    	MPI_Barrier(MPI_COMM_WORLD);    
+    	MPI_Barrier(MPI_COMM_WORLD);
+
+
         if(rank==0){
+            // GATHERRRRR
+
         	mostrar_arreglo(grilla,n);
         	printf("\n%d\n",pasos);
         	pasos--;

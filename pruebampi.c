@@ -37,13 +37,16 @@ int main(){
 
     if(!rank){
         //inicializo matriz
-        int numero = 0; 
-        for(int i = 0; i < TAM; i++){
-            for(int j = 0; j < TAM; j++){
+        int numero = 0,i,j; 
+        for(i = 0; i < TAM; i++){
+            for(j = 0; j < TAM; j++){
                 n[i][j] = numero++;
             }
         }
+        mostrar_grilla(n, TAM);
     }
+
+
     
     //reparto
     MPI_Scatter(n, TAM, MPI_INT,
@@ -51,13 +54,14 @@ int main(){
                 0, MPI_COMM_WORLD);
     
     if(rank ==1){
-        for (int j = 0; j < TAM ; j++){
+        int j;
+        for (j = 0; j < TAM ; j++){
             printf("%d ", strip[j]);
         }
         printf("\n");
     }
 
-    MPI_Gather(&strip, 1, filaGrilla, 
+    MPI_Gather(strip, 1, filaGrilla, 
         n, 1, filaGrilla, 
         0, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);

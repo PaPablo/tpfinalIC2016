@@ -163,18 +163,14 @@ int main(){
 
     int pasos = 10;
     int n = 10;
-    int **grilla= crear_grilla(n);
-    int *strip = crear_strip(n);
-    int *nuevo_strip = crear_strip(n);
-    int **nueva_grilla; 
-	int size;
+    int **grilla = crear_grilla(TAM);
+    int *strip = crear_strip(TAM);
+	int size,rank;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     if(size < 1){
         printf("Ingrese valor de procesos mayor a 1\n");
         exit(1);
     }
-        
-    int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    	
     //Declaro tipo Grilla
@@ -185,36 +181,33 @@ int main(){
     if(rank == 0){
         printf("Creamos primera grilla\n"); 
         printf("Asigno glider\n");
-        /*Glider*/
-        grilla[3][3] = 1;
-        grilla[3][4] = 1;
-        grilla[3][5] = 1;
-        grilla[4][5] = 1;
-        grilla[5][4] = 1;
+        inicializar_grilla(grilla,TAM);
+        mostrar_grilla(grilla, TAM);
+    }
 
-        mostrar_grilla(grilla,TAM);
-    } 
+    MPI_Scatter(grilla, TAM, MPI_INT,
+            strip, TAM, MPI_INT,
+            0, MPI_COMM_WORLD);
+    /*
+    for (int j = 0; j < TAM ; j++){
+        nuevo_strip[j] = nuevo_estado(strip,TAM,rank, j, strip[j]);
+    }
+    for(int j = 0; j < TAM ; j++){
+        strip[j] = nuevo_strip[j];
+    }*/
+    for(int i = 0; i < TAM ; i++){
+        printf("Soy %d, muestro en %d el valor %d\n", rank, i,strip[i]);
+    }
 
-    
-        printf("Scatter %d SOY %d\n", pasos,rank);
-        MPI_Scatter(grilla, TAM, MPI_INT,
-                strip, TAM, MPI_INT,
-                0, MPI_COMM_WORLD);
-        /*
-        for (int j = 0; j < TAM ; j++){
-            nuevo_strip[j] = nuevo_estado(strip,TAM,rank, j, strip[j]);
-        }
-        for(int j = 0; j < TAM ; j++){
-            strip[j] = nuevo_strip[j];
-        }*/
-
-        MPI_Gather(&strip, TAM, MPI_INT, grilla, 10, MPI_INT, 0, MPI_COMM_WORLD);
-      
-        MPI_Barrier(MPI_COMM_WORLD);
-        if(!rank){
-            printf("bout to show\n");
-            mostrar_grilla(grilla, TAM);
-        }
+    MPI_Gather(&strip, 1, filaGrilla, 
+        grilla, 1, filaGrilla, 
+        0, MPI_COMM_WORLD);
+  
+    MPI_Barrier(MPI_COMM_WORLD);
+    if(!rank){
+        printf("bout to show\n");
+        mostrar_grilla(grilla, TAM);
+    }
 
     
 

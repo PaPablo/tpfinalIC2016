@@ -5,22 +5,6 @@
 
 #define TAM 10
 
-int* crear_strip(int n){
-    int i;
-    int *strip;
-
-    //pido memoria para celda
-    strip = malloc(n * sizeof(int *));
-
-    //chequeo si anduvo
-    if(strip == NULL){
-        fprintf(stderr, "malloc failed\n");
-        exit(-1);
-    }    
-    
-    return strip; 
-}
-
 int mostrar_grilla(int grilla[10][10], int n){
     int i,j;
     
@@ -43,6 +27,7 @@ int main(){
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    	
+    //Tipo de dato derivado para hacer el scatter
     MPI_Datatype filaGrilla;
     MPI_Type_vector(TAM, 1, TAM, MPI_INT, &filaGrilla);
     MPI_Type_commit(&filaGrilla);
@@ -51,41 +36,19 @@ int main(){
 
 
     if(!rank){
-        //inicializo
+        //inicializo matriz
         int numero = 0; 
         for(int i = 0; i < TAM; i++){
             for(int j = 0; j < TAM; j++){
                 n[i][j] = numero++;
             }
         }
-
-        /*
-        int envio[TAM];
-        for(int i = 0; i < TAM ; i++){
-            for(int j = 0; j<TAM; j++){
-                envio[j] = n[i][j];
-            }
-            MPI_Send(&envio, TAM, MPI_INT, i+1, 0, MPI_COMM_WORLD);
-        }*/
     }
-    else{
-        /*int recibo[TAM];
-        printf("Soy %d y voy a recibir\n", rank);
-        MPI_Recv(&recibo, TAM, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-        for (int i = 0; i < TAM ; i++){
-            printf("Soy %d y digo %d\n", rank, recibo[i]);
-        }
-        printf("Soy %d y ya mostre\n",rank);*/
-    }
-
+    
+    //reparto
     MPI_Scatter(n, TAM, MPI_INT,
                 strip, TAM,MPI_INT ,
                 0, MPI_COMM_WORLD);
-
-    /*for(int j = 0; j < TAM ; j++){
-        printf("Soy %d y muestro %d\n", rank, strip[j]);
-    }*/
     
     if(rank ==1){
         for (int j = 0; j < TAM ; j++){
@@ -93,6 +56,7 @@ int main(){
         }
         printf("\n");
     }
+
     MPI_Gather(&strip, 1, filaGrilla, 
         n, 1, filaGrilla, 
         0, MPI_COMM_WORLD);

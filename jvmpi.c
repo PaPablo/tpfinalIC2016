@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define TAM 10
+
 int** crear_grilla(int n){
     int i,j;
     int **grilla;
@@ -28,10 +30,10 @@ int* crear_strip(int n){
     int *strip;
 
     //pido memoria para celda
-    strip = malloc(n * sizeof(int*));
+    strip = malloc(n * sizeof(int *));
 
     //chequeo si anduvo
-    if(strip[n-1] == NULL){
+    if(strip == NULL){
         fprintf(stderr, "malloc failed\n");
         exit(-1);
     }    
@@ -47,14 +49,14 @@ int inicializar_grilla(int **grilla, int n){
 
     for(i = 0;i<n;i++){
         for(j = 0; j<n;j++){
-            grilla[i][j] = rand() % 2;
+            grilla[i][j] =0;
         }
     }
     return 0;
 
 }
 
-int mostrar_arreglo(int **grilla, int n){
+int mostrar_grilla(int **grilla, int n){
     int i,j;
     
     for(i = 0;i<n;i++){
@@ -79,76 +81,52 @@ int modulo(int valor, int n){
 
 int cantidad_vecinos(int *strip, int n, int i, int j){
 
-    printf("Vecinos %d %d %d\n",n,i,j);
-    int vecino_norte, 
-        vecino_noroeste,
-        vecino_noreste,
-        vecino_sur,
-        vecino_suroeste,
-        vecino_sureste,
-        envio;
-    printf("oj\n");
     int oj = modulo(j-1,n);
-    printf("ej\n");
     int ej = modulo(j+1,n);
     /* Aca es donde comeinza el intercambio
      * Como estoy trabajando en strips, y se que hay dos strips,
      * de los cuales tres celdas necesitan datos de este strip, 
      * los mando y quedan para usarse cuando se lo requiera
      */
-    
-    envio = strip[j];
+
     printf("About to send\n");
-    for(int requeridos = 0; requeridos < 3; requeridos++){
 
-        /* Pongo como tag la columna asi al requerir
-         * un valor, se lo pide a través del tag
-         */
+    /* Pongo como tag la columna asi al requerir
+     * un valor, se lo pide a través del tag
+     */
 
-        //le mando mi valor al vecino de arriba
-        MPI_Send(&envio, 1, MPI_INT, modulo(i-1,n), j, MPI_COMM_WORLD);
+    //le mando mi valor al vecino de arriba
+    MPI_Send(&strip, n, MPI_INT, modulo(i-1,n), 0, MPI_COMM_WORLD);
 
-        //le mando mi valor al vecino de abajo
-        MPI_Send(&envio, 1, MPI_INT, modulo(i+1,n), j, MPI_COMM_WORLD);
-    }   
+    //le mando mi valor al vecino de abajo
+    MPI_Send(&strip, n, MPI_INT, modulo(i+1,n), 0, MPI_COMM_WORLD);
+
     printf("sent\n");
 
+    int superior[n];
+    int inferior[n];
 
-   	//recibo vecino noroeste
-   	MPI_Recv(&vecino_noroeste, 1, MPI_INT, modulo(i-1,n), modulo(j-1,n), MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Recv(&superior, n, MPI_INT, modulo(i-1,n), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
 
-    //recibo vecino norte
-    MPI_Recv(&vecino_norte, 1, MPI_INT, modulo(i-1,n), j, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-
-    //recibo vecino noreste
-    MPI_Recv(&vecino_noreste, 1, MPI_INT, modulo(i-1,n), modulo(j+1,n), MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-
-    //recibo vecino suroeste
-    MPI_Recv(&vecino_suroeste, 1, MPI_INT, modulo(i+1,n), modulo(j-1,n), MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-
-    //recibo vecino sur
-    MPI_Recv(&vecino_sur, 1, MPI_INT, modulo(i+1,n), j, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-
-    //recibo vecino sureste
-    MPI_Recv(&vecino_sureste, 1, MPI_INT, modulo(i+1,n), modulo(j+1,n), MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Recv(&inferior, n, MPI_INT, modulo(i+1,n), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     //sumamos
     int cant = 
-    vecino_noroeste + //vecino noroeste
-    vecino_norte    + //vecino norte
-	vecino_noreste  + //vecino noreste
-    vecino_suroeste + //vecino suroeste
-    vecino_sur  	+ //vecino sur
-	vecino_sureste	+ //vecino sureste
-    grilla[i][oj]  	+ //vecino oeste
-    grilla[i][ej];	  //vecino este
+    superior[oj] + //vecino noroeste
+    superior[j]    + //vecino norte
+	superior[ej]  + //vecino noreste
+    inferior[oj] + //vecino suroeste
+    inferior[j]  	+ //vecino sur
+	inferior[ej]	+ //vecino sureste
+    strip[oj]  	+ //vecino oeste
+    strip[ej];	  //vecino este
     
     //devolvemos la cantidad
     return cant;
 }
 
 
-int nuevo_estado(int *strip, int n, int j, int viejo_valor){
+int nuevo_estado(int *strip, int n, int i, int j, int viejo_valor){
     printf("Nuevo estado\n");
 
     int vecinos = cantidad_vecinos(strip,n,i,j);
@@ -185,7 +163,7 @@ int main(){
 
     int pasos = 10;
     int n = 10;
-    int **grilla; 
+    int **grilla= crear_grilla(n);
     int *strip = crear_strip(n);
     int *nuevo_strip = crear_strip(n);
     int **nueva_grilla; 
@@ -199,16 +177,13 @@ int main(){
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    	
+    //Declaro tipo Grilla
+    MPI_Datatype filaGrilla;
+    MPI_Type_vector(TAM, 1, TAM, MPI_INT, &filaGrilla);
+    MPI_Type_commit(&filaGrilla);
 
     if(rank == 0){
-        printf("Creamos primera grilla\n");
-        grilla = crear_grilla(n); 
-        nueva_grilla = crear_grilla(n);
-        inicializar_grilla(grilla, n);  
-
-        // SCATTERRRR
-        MPI
-
+        printf("Creamos primera grilla\n"); 
         printf("Asigno glider\n");
         /*Glider*/
         grilla[3][3] = 1;
@@ -216,31 +191,32 @@ int main(){
         grilla[3][5] = 1;
         grilla[4][5] = 1;
         grilla[5][4] = 1;
-    }
 
+        mostrar_grilla(grilla,TAM);
+    } 
 
-    while(pasos){
-
-            for (int j = 0; j < n ; j++) {
-                nueva_grilla[rank][j] = nuevo_estado(grilla,n,rank,j, grilla[rank][j]);
-            }
-
-        
-            for (int j = 0; j < n ; j++) {
-                grilla[rank][j] = nueva_grilla[rank][j];
-            }
-
-    	MPI_Barrier(MPI_COMM_WORLD);
-
-
-        if(rank==0){
-            // GATHERRRRR
-
-        	mostrar_arreglo(grilla,n);
-        	printf("\n%d\n",pasos);
-        	pasos--;
+    
+        printf("Scatter %d SOY %d\n", pasos,rank);
+        MPI_Scatter(grilla, TAM, MPI_INT,
+                strip, TAM, MPI_INT,
+                0, MPI_COMM_WORLD);
+        /*
+        for (int j = 0; j < TAM ; j++){
+            nuevo_strip[j] = nuevo_estado(strip,TAM,rank, j, strip[j]);
         }
-    }
+        for(int j = 0; j < TAM ; j++){
+            strip[j] = nuevo_strip[j];
+        }*/
+
+        MPI_Gather(&strip, TAM, MPI_INT, grilla, 10, MPI_INT, 0, MPI_COMM_WORLD);
+      
+        MPI_Barrier(MPI_COMM_WORLD);
+        if(!rank){
+            printf("bout to show\n");
+            mostrar_grilla(grilla, TAM);
+        }
+
+    
 
     
     MPI_Finalize();

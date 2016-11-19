@@ -5,11 +5,11 @@
 
 #define TAM 10
 
-int mostrar_grilla(int grilla[10][10], int n){
+int mostrar_grilla(int grilla[10][10]){
     int i,j;
     
-    for(i = 0;i<n;i++){
-        for(j = 0; j<n;j++){
+    for(i = 0;i<10;i++){
+        for(j = 0; j<10;j++){
             printf("%d ",grilla[i][j]);
         }
         printf("\n");
@@ -43,7 +43,7 @@ int main(){
                 n[i][j] = numero++;
             }
         }
-        mostrar_grilla(n, TAM);
+       // mostrar_grilla(n, TAM);
     }
 
 
@@ -54,11 +54,13 @@ int main(){
                 0, MPI_COMM_WORLD);
     
     if(rank ==1){
+        printf("Muestro fila %d desde rank: %d\n", rank, rank);
         int j;
         for (j = 0; j < TAM ; j++){
             printf("%d ", strip[j]);
         }
-        printf("\n");
+        printf("\n\n");
+
     }
 
     MPI_Gather(strip, 1, filaGrilla, 
@@ -67,7 +69,10 @@ int main(){
     MPI_Barrier(MPI_COMM_WORLD);
 
     if(!rank){
-        mostrar_grilla(n,TAM);
+        printf("Muestro toda la matriz despues del gather desde rank: %d\n", rank);
+        
+        mostrar_grilla(n);
+	printf("\n\n");
     }
     MPI_Finalize();
     return 0;

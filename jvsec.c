@@ -123,25 +123,31 @@ int nuevo_estado(int **grilla, int n, int i, int j, int viejo_valor){
     
 }
 
+int glider(int **grilla){
+
+    grilla[1][3] = 1;
+    grilla[1][4] = 1;
+    grilla[1][5] = 1;
+    grilla[2][3] = 1;
+    grilla[3][4] = 1;
+
+    return 0;
+}
+
 int main(){
-    int n = 100;
-    int pasos = 10000;
+    int n = 25;
+    int pasos = 100;
 
     int i,j;
-    printf("grilla\n");
     //grilla con el estado actual
     int **grilla = crear_grilla(n);
 
-    printf("nueva grilla\n");
     //nuevo estado de la grilla
     int **nueva_grilla = crear_grilla(n);
 
-    /*Glider*/
-    
-    printf("Version Secuencial. Jugando...\n");
+    glider(grilla);
 
-
-    inicializar_grilla(grilla, n);
+    //inicializar_grilla(grilla, n);
     while(pasos){
 
         for(i = 0; i < n; i++) {
@@ -155,7 +161,7 @@ int main(){
                 grilla[i][j] = nueva_grilla[i][j];
             }
         }
-
+        mostrar_arreglo(grilla, n);
         pasos--;
     }
     

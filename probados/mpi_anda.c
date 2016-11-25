@@ -1,4 +1,4 @@
-#include <stdio.h>
+nclude <stdio.h>
 #include <mpi.h>
 #include <stdlib.h>
 #include <unistd.h>

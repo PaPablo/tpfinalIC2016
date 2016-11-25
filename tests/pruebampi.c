@@ -5,21 +5,35 @@
 
 #define TAM 10
 
-int **crear_grilla(int n) {
+int **neva_cer(int filas, int columnas){
+    int **matriz;
+    int i;
+
+    matriz = malloc(filas * sizeof(int *));
+    matriz[0] = malloc(filas*columnas*sizeof(int *));
+
+    for(i = 1; i< filas; i++){
+        matriz[i] = &matriz[0][i * columnas];
+    }
+
+    return matriz;
+}
+
+int **crear_grilla(int filas, int columnas) {
   int **result;
   int i;
 
   /* Allocate an array of pointers to hold pointers to the rows of the
      array */
-  result=(int **)malloc(n*sizeof(int *));
+  result=(int **)malloc(filas*sizeof(int *));
 
   /* The first pointer is in fact a pointer to the entire array */
-  result[0]=(int *)malloc(n*n*sizeof(int));
+  result[0]=(int *)malloc(filas*columnas*sizeof(int));
 
   /* The remaining pointers are just pointers into this array, offset
      in units of col_dim */
-  for(i=1; i<n; i++)
-    result[i]=result[i-1]+n;
+  for(i=1; i<filas; i++)
+    result[i]=result[i-1]+columnas;
 
   return result;
 }
@@ -62,7 +76,7 @@ int* crear_strip(int n){
 
 int main(){
     //creo arreglo para mandar
-    int **n = crear_grilla(TAM);
+    int **n = neva_cer(TAM,TAM);
     int size,rank;
 
     MPI_Init(NULL, NULL);    
@@ -86,29 +100,31 @@ int main(){
             }
         }
         mostrar_grilla(n);
+
+
     }
 
 
-    
+    int pedazo[2][TAM];
+    pedazo[0][0] = 1;
+
+    printf("%d\n",pedazo[0][0]);
+
+
+    printf("scatter\n");
     //reparto
-    MPI_Scatter(*n, TAM, MPI_INT,
-                strip, TAM,MPI_INT ,
+    MPI_Scatter(*n, 20, MPI_INT,
+                pedazo, 20,MPI_INT ,
                 0, MPI_COMM_WORLD);
-    
-    mostrar_strip(strip, TAM);
 
-
-    MPI_Gather(strip, TAM, MPI_INT, 
-        *n, TAM, MPI_INT, 
-        0, MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    if(!rank){
-        printf("Muestro toda la matriz despues del gather desde rank: %d\n", rank);
-        
-        mostrar_grilla(n);
-	printf("\n\n");
+    for(int i = 0; i < 2; i++){
+        for(int j = 0; j < TAM ; j++){
+            printf("%d:%.2d ",rank, pedazo[i][j]);
+        }
+        printf("\n");
     }
+
+    
     MPI_Finalize();
     return 0;
 
